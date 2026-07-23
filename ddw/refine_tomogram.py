@@ -166,7 +166,7 @@ def refine_tomogram(
                     lightning_model.unet.normalization_scale.clone().detach().item(),
                 )
 
-            t_ref = _refine_single_tomogram(
+            t0_ref = _refine_single_tomogram(
                 tomo_file=t0_file,
                 lightning_model=lightning_model,
                 subtomo_size=subtomo_size,
@@ -178,7 +178,8 @@ def refine_tomogram(
                 batch_size=batch_size,
                 pbar_desc="Refining tomo0",
             )
-            t_ref += _refine_single_tomogram(
+            
+            t1_ref = _refine_single_tomogram(
                 tomo_file=t1_file,
                 lightning_model=lightning_model,
                 subtomo_size=subtomo_size,
@@ -190,16 +191,30 @@ def refine_tomogram(
                 batch_size=batch_size,
                 pbar_desc="Refining tomo1",
             )
-            t_ref /= 2
+            
+            t_ref_avg = (t0_ref + t1_ref) / 2.0
+
             if return_tomos:
-                tomo_ref.append(t_ref)
+                tomo_ref.append((t0_ref, t1_ref, t_ref_avg))
+
             if output_dir is not None:
-                basename0, ext = os.path.splitext(os.path.basename(t0_file))
-                basename1, ext = os.path.splitext(os.path.basename(t1_file))
-                basename = f"{basename0}+{basename1}"
-                outfile = f"{output_dir}/{basename}_refined{ext}"
-                print(f"Saving refined tomogram to {outfile}")
-                save_mrc_data(t_ref.cpu(), f"{outfile}", save=True)
+                basename0, _ = os.path.splitext(os.path.basename(t0_file))
+                basename1, _ = os.path.splitext(os.path.basename(t1_file))
+                basename_avg = f"{basename0}+{basename1}"
+
+                outfile0 = f"{output_dir}/{basename0}_refined.mrc"
+                outfile1 = f"{output_dir}/{basename1}_refined.mrc"
+                outfile_avg = f"{output_dir}/{basename_avg}_refined.mrc"
+
+                print(f"Saving refined tomo0 to {outfile0}")
+                save_mrc_data(t0_ref.cpu(), f"{outfile0}", save=True)
+                
+                print(f"Saving refined tomo1 to {outfile1}")
+                save_mrc_data(t1_ref.cpu(), f"{outfile1}", save=True)
+
+                print(f"Saving averaged refined tomogram to {outfile_avg}")
+                save_mrc_data(t_ref_avg.cpu(), f"{outfile_avg}", save=True)
+                
     if return_tomos:
         return tomo_ref
 
