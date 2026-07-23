@@ -1,18 +1,38 @@
 #!/bin/bash
 
-# Tailles des subtomos à tester
-SIZES=(32 64 96)
+# ==================================================================
+# 1. INITIALISATION DE CONDA POUR LE SCRIPT BASH
+# ==================================================================
+# On force le chargement du profil conda (nécessaire dans un script)
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/anaconda3/etc/profile.d/conda.sh"
+else
+    echo "ERREUR : Impossible de trouver l'initialisation de conda. Vérifiez votre dossier d'installation (miniconda3 ou anaconda3)."
+    exit 1
+fi
+
+# ==================================================================
+# 2. CONFIGURATION DES CHEMINS ET VARIABLES
+# ==================================================================
+# Si votre config.yaml se trouve AUSSI dans le dossier tutorial, modifiez la ligne ci-dessous en : 
+# CONFIG_FILE="./tutorial/config.yaml"
+# S'il se trouve à la racine (là où vous lancez la commande), laissez-le ainsi :
 CONFIG_FILE="./config.yaml"
 
-# On peut définir le préfixe conda dans une variable pour alléger le code
+SIZES=(32 64 96)
 CONDA_CMD="conda run --no-capture-output -n ddw_env ddw"
 
+# ==================================================================
+# 3. BOUCLE PRINCIPALE
+# ==================================================================
 for SIZE in "${SIZES[@]}"; do
     echo "=================================================================="
     echo "DÉMARRAGE DU PIPELINE AVEC SUBTOMO_SIZE = $SIZE"
     echo "=================================================================="
 
-    # Création d'un dossier de projet unique pour chaque taille pour ne pas écraser les données
+    # Création d'un dossier de projet unique pour chaque taille à la racine
     PROJECT_DIR="./tutorial_project_${SIZE}"
 
     # 1. Préparation des données
@@ -30,15 +50,11 @@ for SIZE in "${SIZES[@]}"; do
         --project-dir "$PROJECT_DIR"
 
     # 3. Trouver le meilleur checkpoint généré
-    # PyTorch Lightning sauvegarde les modèles dans logdir/checkpoints/val_loss/
     echo ">>> Recherche du meilleur modèle entraîné..."
-    # On récupère le fichier .ckpt le plus récent
     BEST_MODEL=$(ls -t "$PROJECT_DIR"/logs/version_*/checkpoints/val_loss/*.ckpt 2>/dev/null | head -n 1)
 
     if [ -z "$BEST_MODEL" ]; then
         echo "ERREUR : Aucun modèle trouvé pour la taille $SIZE. L'entraînement a peut-être échoué."
-        # Si vous sauvegardez uniquement sur la fitting_loss (ex: val_fraction=0 dans config) :
-        # BEST_MODEL=$(ls -t "$PROJECT_DIR"/logs/version_*/checkpoints/fitting_loss/*.ckpt 2>/dev/null | head -n 1)
         continue
     fi
 
