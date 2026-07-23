@@ -2,7 +2,10 @@
 
 # Tailles des subtomos à tester
 SIZES=(32 64 96)
-CONFIG_FILE="config.yaml"
+CONFIG_FILE="./config.yaml"
+
+# On peut définir le préfixe conda dans une variable pour alléger le code
+CONDA_CMD="conda run --no-capture-output -n ddw_env ddw"
 
 for SIZE in "${SIZES[@]}"; do
     echo "=================================================================="
@@ -14,14 +17,14 @@ for SIZE in "${SIZES[@]}"; do
 
     # 1. Préparation des données
     echo ">>> 1. prepare-data (size: $SIZE)..."
-    ddw prepare-data \
+    $CONDA_CMD prepare-data \
         --config "$CONFIG_FILE" \
         --subtomo-size "$SIZE" \
         --project-dir "$PROJECT_DIR"
 
     # 2. Entraînement du modèle
     echo ">>> 2. fit-model (size: $SIZE)..."
-    ddw fit-model \
+    $CONDA_CMD fit-model \
         --config "$CONFIG_FILE" \
         --subtomo-size "$SIZE" \
         --project-dir "$PROJECT_DIR"
@@ -34,7 +37,7 @@ for SIZE in "${SIZES[@]}"; do
 
     if [ -z "$BEST_MODEL" ]; then
         echo "ERREUR : Aucun modèle trouvé pour la taille $SIZE. L'entraînement a peut-être échoué."
-        # Si vous sauvegardez uniquement sur la fitting_loss (si pas de données de validation) :
+        # Si vous sauvegardez uniquement sur la fitting_loss (ex: val_fraction=0 dans config) :
         # BEST_MODEL=$(ls -t "$PROJECT_DIR"/logs/version_*/checkpoints/fitting_loss/*.ckpt 2>/dev/null | head -n 1)
         continue
     fi
@@ -43,7 +46,7 @@ for SIZE in "${SIZES[@]}"; do
 
     # 4. Raffinement des tomogrammes
     echo ">>> 3. refine-tomogram (size: $SIZE)..."
-    ddw refine-tomogram \
+    $CONDA_CMD refine-tomogram \
         --config "$CONFIG_FILE" \
         --subtomo-size "$SIZE" \
         --project-dir "$PROJECT_DIR" \
