@@ -1,8 +1,8 @@
 import typer
 
-from .fit_model import fit_model
-from .prepare_data import prepare_data
-from .refine_tomogram import refine_tomogram
+from .fit_n2v_model import fit_model
+from .prepare_n2v_data import prepare_data
+from .refine_n2v_tomogram import refine_tomogram
 
 # pretty_exceptions_show_locals=False gives shorter error messages
 app = typer.Typer(pretty_exceptions_show_locals=False)

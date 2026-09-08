@@ -68,25 +68,17 @@ class SubtomoDataset(Dataset):
         return rot_axis, rot_angle
 
     def __len__(self):
-        return len(os.listdir(f"{self.subtomo_dir}/subtomo0"))
+        return len(os.listdir(f"{self.subtomo_dir}/subtomo"))
 
     def __getitem__(self, index):
         # load subtomos
-        subtomo0_file = f"{self.subtomo_dir}/subtomo0/{index}.pt"
-        subtomo0 = safe_load(subtomo0_file)
-        subtomo1_file = f"{self.subtomo_dir}/subtomo1/{index}.pt"
-        subtomo1 = safe_load(subtomo1_file)
+        subtomo_file = f"{self.subtomo_dir}/subtomo/{index}.pt"
+        subtomo_input = safe_load(subtomo_file)
         # rotate subtomos
         if self.rotate_subtomos == True:
             rot_axis, rot_angle = self._sample_rot_axis_and_angle(index)
-            subtomo0 = rotate_vol_around_axis(
-                subtomo0,
-                rot_angle=rot_angle,
-                rot_axis=rot_axis,
-                output_shape=3 * [self.crop_subtomos_to_size],
-            )
-            subtomo1 = rotate_vol_around_axis(
-                subtomo1,
+            subtomo_input = rotate_vol_around_axis(
+                subtomo_input,
                 rot_angle=rot_angle,
                 rot_axis=rot_axis,
                 output_shape=3 * [self.crop_subtomos_to_size],
@@ -95,32 +87,31 @@ class SubtomoDataset(Dataset):
             mw_mask = get_missing_wedge_mask(
                 grid_size=3 * [self.crop_subtomos_to_size],
                 mw_angle=self.mw_angle,
-                device=subtomo0.device,
+                device=subtomo_input.device,
             )
             rot_mw_mask = get_rotated_missing_wedge_mask(
                 grid_size=3 * [self.crop_subtomos_to_size],
                 mw_angle=self.mw_angle,
                 rot_axis=rot_axis,
                 rot_angle=rot_angle,
-                device=subtomo0.device,
+                device=subtomo_input.device,
             )
         else:
             mw_mask = get_missing_wedge_mask(
-                grid_size=subtomo0.shape,
+                grid_size=subtomo_input.shape,
                 mw_angle=self.mw_angle,
-                device=subtomo0.device,
+                device=subtomo_input.device,
             )
             rot_mw_mask = mw_mask
             rot_angle, rot_axis = 0, torch.tensor([1.0, 0.0, 0.0])
 
-        model_input = apply_fourier_mask_to_tomo(subtomo0, mw_mask)
+        n2v_input = apply_fourier_mask_to_tomo(subtomo_input, mw_mask)
         item = {
-            "model_input": model_input,
-            "model_target": subtomo1,
+            "n2v_input": n2v_input,
+            "model_target": subtomo_input,
             "mw_mask": mw_mask,
             "rot_mw_mask": rot_mw_mask,
-            "subtomo0_file": subtomo0_file,
-            "subtomo1_file": subtomo1_file,
+            "subtomo_file": subtomo_file,
             "rot_angle": rot_angle,
             "rot_axis": rot_axis,
         }

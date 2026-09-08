@@ -10,6 +10,8 @@ from .fourier import apply_fourier_mask_to_tomo
 from .masked_loss import masked_loss
 from .missing_wedge import get_missing_wedge_mask
 from .normalization import get_avg_model_input_mean_and_std_from_dataloader
+from careamics.config.algorithms.n2v_manipulation.n2v_manipulate_config import N2VManipulateConfig
+from careamics.lightning.modules.n2v_utils.n2v_manipulate import N2VManipulate
 
 
 class LitUnet3D(pl.LightningModule):
@@ -21,12 +23,14 @@ class LitUnet3D(pl.LightningModule):
         self,
         unet_params,
         adam_params,
+        n2v_manipulate_params,
         subtomo_dir,
         update_subtomo_missing_wedges_every_n_epochs=10,
     ):
         super().__init__()
         self.unet_params = unet_params
         self.adam_params = adam_params
+        self.n2v_manipulate_config = N2VManipulateConfig(**n2v_manipulate_params)
         self.subtomo_dir = subtomo_dir
         self.update_subtomo_missing_wedges_every_n_epochs = (
             update_subtomo_missing_wedges_every_n_epochs
@@ -41,12 +45,18 @@ class LitUnet3D(pl.LightningModule):
         )  # unsqueeze to add channel dimension, squeeze to remove it
 
     def training_step(self, batch, batch_idx):
-        model_output = self(batch["model_input"])
+        masked, _, n2v_mask = self.n2v_manipulate(batch["n2v_input"].unsqueeze(1))
+        model_input = masked.squeeze(1)
+        n2v_mask = n2v_mask.squeeze(1)
+
+        model_output = self(model_input)
+
         loss = masked_loss(
             model_output=model_output,
             target=batch["model_target"],
             rot_mw_mask=batch["rot_mw_mask"],
             mw_mask=batch["mw_mask"],
+            n2v_mask=n2v_mask,
         )
         self.log(
             "fitting_loss",
@@ -59,12 +69,18 @@ class LitUnet3D(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        model_output = self(batch["model_input"])
+        masked, _, n2v_mask = self.n2v_manipulate(batch["n2v_input"].unsqueeze(1))
+        model_input = masked.squeeze(1)
+        n2v_mask = n2v_mask.squeeze(1)
+
+        model_output = self(model_input)
+
         loss = masked_loss(
             model_output=model_output,
             target=batch["model_target"],
             rot_mw_mask=batch["rot_mw_mask"],
             mw_mask=batch["mw_mask"],
+            n2v_mask=n2v_mask,
         )
         self.log(
             "val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True
@@ -74,6 +90,7 @@ class LitUnet3D(pl.LightningModule):
     #     self.ema.update()
 
     def on_train_start(self) -> None:
+        self.n2v_manipulate = N2VManipulate(self.n2v_manipulate_config, device=self.device)
         if self.current_epoch == 0:
             self.update_normalization()
 
@@ -116,7 +133,7 @@ class LitUnet3D(pl.LightningModule):
             num_workers=train_loader.num_workers,
         )
         # subtomo size has to be divisible by 2**num_downsample_layers due to U-Net architecture -> ensure this by padding
-        subtomo_dim = dataset[0]["model_input"].shape[-1]
+        subtomo_dim = dataset[0]["n2v_input"].shape[-1]
         factor = 2 ** self.unet_params["num_downsample_layers"]
         padding = factor * math.ceil(subtomo_dim / factor) - subtomo_dim
         # also make larger missing wedge mask that is compatible with the padded subtomos
@@ -124,7 +141,7 @@ class LitUnet3D(pl.LightningModule):
         with torch.no_grad():
             for batch in tqdm.tqdm(loader, desc="Updating subtomo missing wedges"):
                 assert batch["rot_angle"].float().norm() == 0
-                subtomo_batch = batch["model_input"].to(self.device)
+                subtomo_batch = batch["n2v_input"].to(self.device)
                 subtomo_batch = torch.nn.functional.pad(
                     subtomo_batch,
                     pad=(0, padding, 0, padding, 0, padding),
@@ -143,7 +160,7 @@ class LitUnet3D(pl.LightningModule):
                 subtomo_batch = subtomo_batch[
                     ..., :subtomo_dim, :subtomo_dim, :subtomo_dim
                 ]
-                for subtomo, file in zip(subtomo_batch, batch["subtomo0_file"]):
+                for subtomo, file in zip(subtomo_batch, batch["subtomo_file"]):
                     torch.save(subtomo.cpu().clone(), file)
         train_set.rotate_subtomos = True
         if self.trainer.val_dataloaders is not None:

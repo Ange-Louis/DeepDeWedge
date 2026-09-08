@@ -1,0 +1,113 @@
+"""Architecture model validators."""
+
+from careamics.config.architectures import UNetConfig
+
+
+def model_without_n2v2(model: UNetConfig) -> UNetConfig:
+    """Validate that the Unet model does not have the n2v2 attribute.
+
+    Parameters
+    ----------
+    model : UNetConfig
+        Model to validate.
+
+    Returns
+    -------
+    UNetConfig
+        The validated model.
+
+    Raises
+    ------
+    ValueError
+        If the model has the `n2v2` attribute set to `True`.
+    """
+    if model.n2v2:
+        raise ValueError(
+            "The algorithm does not support the `n2v2` attribute in the model. "
+            "Set it to `False`."
+        )
+
+    return model
+
+
+def model_without_final_activation(model: UNetConfig) -> UNetConfig:
+    """Validate that the UNet model does not have the final_activation.
+
+    Parameters
+    ----------
+    model : UNetConfig
+        Model to validate.
+
+    Returns
+    -------
+    UNetConfig
+        The validated model.
+
+    Raises
+    ------
+    ValueError
+        If the model has the final_activation attribute set.
+    """
+    if model.final_activation != "None":
+        raise ValueError(
+            "The algorithm does not support a `final_activation` in the model. "
+            'Set it to `"None"`.'
+        )
+
+    return model
+
+
+def model_matching_in_out_channels(model: UNetConfig) -> UNetConfig:
+    """Validate that the UNet model has the same number of channel inputs and outputs.
+
+    Parameters
+    ----------
+    model : UNetConfig
+        Model to validate.
+
+    Returns
+    -------
+    UNetConfig
+        Validated model.
+
+    Raises
+    ------
+    ValueError
+        If the model has different number of input and output channels.
+    """
+    if model.num_classes != model.in_channels:
+        raise ValueError(
+            "The algorithm requires the same number of input and output channels. "
+            "Make sure that `in_channels` and `num_classes` are equal."
+        )
+
+    return model
+
+
+def model_no_c_ind_for_mismatching_channels(model: UNetConfig) -> UNetConfig:
+    """Validate that UNet models with mismatching input/output has dependent channels.
+
+    Parameters
+    ----------
+    model : UNetModel
+        Model to validate.
+
+    Returns
+    -------
+    UNetModel
+        Validated model.
+
+    Raises
+    ------
+    ValueError
+        If the model has `independent_channels` set to `True` while the number of input
+        and output channels do not match.
+    """
+    if model.num_classes != model.in_channels and model.independent_channels:
+        raise ValueError(
+            f"Channels cannot be independent if the number of input and output channels"
+            f" do not match. Got {model.in_channels} input channels and "
+            f"{model.num_classes} output channels."
+        )
+
+    return model

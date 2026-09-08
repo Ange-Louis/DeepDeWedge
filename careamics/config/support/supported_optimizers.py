@@ -1,0 +1,61 @@
+"""Optimizers and schedulers supported by CAREamics."""
+
+from enum import StrEnum
+
+
+class SupportedOptimizer(StrEnum):
+    """Supported optimizers.
+
+    Attributes
+    ----------
+    Adam : str
+        Adam optimizer.
+    AdamW : str
+        AdamW optimizer.
+    Adamax : str
+        Adamax optimizer.
+    SGD : str
+        Stochastic Gradient Descent optimizer.
+    """
+
+    # ASGD = "ASGD"
+    # Adadelta = "Adadelta"
+    # Adagrad = "Adagrad"
+    ADAM = "Adam"
+    ADAMW = "AdamW"
+    ADAMAX = "Adamax"
+    # LBFGS = "LBFGS"
+    # NAdam = "NAdam"
+    # RAdam = "RAdam"
+    # RMSprop = "RMSprop"
+    # Rprop = "Rprop"
+    SGD = "SGD"
+    # SparseAdam = "SparseAdam"
+
+
+class SupportedScheduler(StrEnum):
+    """Supported schedulers.
+
+    Attributes
+    ----------
+    ReduceLROnPlateau : str
+        Reduce learning rate on plateau.
+    StepLR : str
+        Step learning rate.
+    """
+
+    # ChainedScheduler = "ChainedScheduler"
+    # ConstantLR = "ConstantLR"
+    # CosineAnnealingLR = "CosineAnnealingLR"
+    # CosineAnnealingWarmRestarts = "CosineAnnealingWarmRestarts"
+    # CyclicLR = "CyclicLR"
+    # ExponentialLR = "ExponentialLR"
+    # LambdaLR = "LambdaLR"
+    # LinearLR = "LinearLR"
+    # MultiStepLR = "MultiStepLR"
+    # MultiplicativeLR = "MultiplicativeLR"
+    # OneCycleLR = "OneCycleLR"
+    # PolynomialLR = "PolynomialLR"
+    REDUCE_LR_ON_PLATEAU = "ReduceLROnPlateau"
+    # SequentialLR = "SequentialLR"
+    STEP_LR = "StepLR"

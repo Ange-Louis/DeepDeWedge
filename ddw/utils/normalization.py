@@ -3,7 +3,7 @@ import tempfile
 import torch
 import tqdm
 
-from ddw.prepare_data import prepare_data
+from ddw.prepare_n2v_data import prepare_data
 
 from .subtomo_dataset import SubtomoDataset
 
@@ -14,8 +14,7 @@ def get_avg_model_input_mean_and_std(tomo_file, subtomo_size, subtomo_extraction
     """
     with tempfile.TemporaryDirectory() as subtomo_dir:
         prepare_data(
-            tomo0_files=[tomo_file],
-            tomo1_files=[tomo_file],
+            tomo_files=[tomo_file],
             mask_files=[],
             subtomo_size=subtomo_size,
             extract_larger_subtomos_for_rotating=True,
@@ -61,8 +60,8 @@ def get_avg_model_input_mean_and_std_from_dataloader(dataloader, batches=None, v
         except StopIteration:
             iter_loader = iter(dataloader)
             batch = next(iter_loader)
-        means.append(batch["model_input"].mean(dim=(-1, -2, -3)))
-        vars.append(batch["model_input"].var(dim=(-1, -2, -3)))
+        means.append(batch["n2v_input"].mean(dim=(-1, -2, -3)))
+        vars.append(batch["n2v_input"].var(dim=(-1, -2, -3)))
     mean = torch.concat(means, 0).mean().cpu().item()
     std = torch.concat(vars, 0).mean().sqrt().cpu().item()
     return mean, std
