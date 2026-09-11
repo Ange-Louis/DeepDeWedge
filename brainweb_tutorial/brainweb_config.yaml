@@ -3,7 +3,7 @@ shared:
   tomo0_files:
     - "./brainweb_tutorial/brainweb_dataset/brainweb_tomo_even_frames.mrc"
   tomo1_files:
-    - "./brainweb_tutorial/brainweb_dataset/tomo_odd_frames.mrc"
+    - "./brainweb_tutorial/brainweb_dataset/brainweb_tomo_odd_frames.mrc"
   subtomo_size: 64
   mw_angle: 50
   # standardize_full_tomos: true  # not necessary for BrainWeb but useful if your volumes have low voxel intensities; see "ddw prepare-data --help" for details
