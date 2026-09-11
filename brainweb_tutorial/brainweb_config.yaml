@@ -1,7 +1,7 @@
 shared:
   project_dir: "./brainweb_project"
   tomo0_files:
-    - "./brainweb_tutorial/brainweb_dataset/tomo_even_frames.mrc"
+    - "./brainweb_tutorial/brainweb_dataset/brainweb_tomo_even_frames.mrc"
   tomo1_files:
     - "./brainweb_tutorial/brainweb_dataset/tomo_odd_frames.mrc"
   subtomo_size: 64
